@@ -1,0 +1,187 @@
+ROUTER0 CONFIG
+
+hostname Router0
+enable secret cisco
+ip domain-lookup
+
+! LAN interface (inside)
+int fa1/0
+ description LAN - inside
+ ip address 192.168.1.1 255.255.255.0
+ ip nat inside
+ no shutdown
+
+! WAN interface (outside) - public side
+int fa0/0
+ description WAN - outside
+ ip address 203.0.113.10 255.255.255.0
+ ip nat outside
+ no shutdown
+
+! default route to ISP
+ip route 0.0.0.0 0.0.0.0 203.0.113.1
+
+! NAT overload (PAT) to allow internal hosts outbound
+access-list 1 permit 192.168.1.0 0.0.0.255
+ip nat inside source list 1 interface fa0/0 overload
+
+! No inbound ACLs applied on WAN (intentionally insecure)
+! No management access restrictions
+
+ip nat inside source static tcp 192.168.1.100 80 interface fa0/0 80
+
+! Local user and vty (telnet allowed; weak creds)
+username admin privilege 15 secret admin
+line vty 0 4
+ password cisco
+ login
+ transport input telnet ssh
+
+! Leave CDP and other discovery enabled (insecure)
+! No syslog, no AAA, no ACLs for hosts
+
+! Intentionally weak credentials
+
+Switch0 CONFIG
+hostname Switch0
+
+
+DHCP CONFIG
+Config → FastEthernet → set:
+
+IP Address: 192.168.1.100
+
+Subnet Mask: 255.255.255.0
+
+Default Gateway: 192.168.1.1
+
+Services → DHCP → Turn DHCP ON.
+
+Pool name: SMEPOOL
+
+Default Gateway: 192.168.1.1
+
+DNS Server: 8.8.8.8
+
+Start IP: 192.168.1.21
+
+Subnet Mask: 255.255.255.0
+
+Max Users: 150
+
+! SET ALL SME DEVICES TO USE DHCP
+
+ATTACKER PC CONFIG
+IP address: 203.0.113.50
+
+Subnet mask: 255.255.255.0
+
+Default gateway: 203.0.113.1
+
+DNS: (optional) 8.8.8.8
+
+
+
+RUNNING CONFIG ON ROUTER0
+Router0#show running-config 
+Building configuration...
+
+Current configuration : 1204 bytes
+!
+version 12.2
+no service timestamps log datetime msec
+no service timestamps debug datetime msec
+no service password-encryption
+!
+hostname Router0
+!
+!
+!
+enable secret 5 $1$mERr$hx5rVt7rPNoS4wqbXKX7m0
+!
+!
+!
+!
+!
+!
+ip cef
+no ipv6 cef
+!
+!
+!
+username admin privilege 15 secret 5 $1$mERr$vTbHul1N28cEp8lkLqr0f/
+!
+!
+!
+!
+!
+!
+!
+!
+!
+!
+!
+!
+!
+!
+!
+!
+interface FastEthernet0/0
+ description WAN - outside
+ ip address 203.0.113.10 255.255.255.0
+ ip nat outside
+ duplex auto
+ speed auto
+!
+interface FastEthernet1/0
+ description LAN - inside
+ ip address 192.168.1.1 255.255.255.0
+ ip nat inside
+ duplex auto
+ speed auto
+!
+interface Serial2/0
+ no ip address
+ clock rate 2000000
+ shutdown
+!
+interface Serial3/0
+ no ip address
+ clock rate 2000000
+ shutdown
+!
+interface FastEthernet4/0
+ no ip address
+ shutdown
+!
+interface FastEthernet5/0
+ no ip address
+ shutdown
+!
+ip nat inside source list 1 interface FastEthernet0/0 overload
+ip nat inside source static tcp 192.168.1.100 80 203.0.113.10 80 
+ip classless
+ip route 0.0.0.0 0.0.0.0 203.0.113.1 
+!
+ip flow-export version 9
+!
+!
+access-list 1 permit 192.168.1.0 0.0.0.255
+!
+!
+!
+!
+!
+!
+line con 0
+!
+line aux 0
+!
+line vty 0 4
+ password cisco
+ login
+ transport input ssh
+!
+!
+!
+end
