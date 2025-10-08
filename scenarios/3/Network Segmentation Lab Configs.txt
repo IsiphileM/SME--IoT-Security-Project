@@ -1,0 +1,183 @@
+Network Segmentation Lab Documentation
+
+IP Plan
+VLAN  Segment          Gateway        Devices                           Device IPs
+10    Admin/Servers    192.168.10.1   Server0, PC0, PC1                 192.168.10.10, 192.168.10.30, 192.168.10.20
+20    Management       192.168.20.1   PC2, PC3, PC4                     192.168.20.10, 192.168.20.11, 192.168.20.12
+30    IoT              192.168.30.1   IoT3, IoT4, IoT5, IoT6            192.168.30.10, 192.168.30.12, 192.168.30.13, 192.168.30.11
+40    Users            192.168.40.1   PC5, PC6, InsideAttacker          192.168.40.10, 192.168.40.11, 192.168.40.12
+
+1. Multilayer Switch Configuration
+
+Enable Routing
+Switch> enable
+Switch# configure terminal
+Switch(config)# ip routing
+
+Create VLANs
+Switch(config)# vlan 10
+Switch(config-vlan)# name ADMIN_SERVER
+Switch(config-vlan)# exit
+Switch(config)# vlan 20
+Switch(config-vlan)# name MANAGEMENT
+Switch(config-vlan)# exit
+Switch(config)# vlan 30
+Switch(config-vlan)# name IOT
+Switch(config-vlan)# exit
+Switch(config)# vlan 40
+Switch(config-vlan)# name USERS
+Switch(config-vlan)# exit
+Switch(config)# vlan 99
+Switch(config-vlan)# name NATIVE
+Switch(config-vlan)# exit
+
+Create SVIs (Gateway IPs)
+Switch(config)# interface vlan 10
+Switch(config-if)# ip address 192.168.10.1 255.255.255.0
+Switch(config-if)# no shutdown
+Switch(config-if)# exit
+Switch(config)# interface vlan 20
+Switch(config-if)# ip address 192.168.20.1 255.255.255.0
+Switch(config-if)# no shutdown
+Switch(config-if)# exit
+Switch(config)# interface vlan 30
+Switch(config-if)# ip address 192.168.30.1 255.255.255.0
+Switch(config-if)# no shutdown
+Switch(config-if)# exit
+Switch(config)# interface vlan 40
+Switch(config-if)# ip address 192.168.40.1 255.255.255.0
+Switch(config-if)# no shutdown
+Switch(config-if)# exit
+
+Configure Trunk Ports to L2 Switches
+Switch(config)# interface gigabitEthernet1/0/2
+Switch(config-if)# switchport trunk encapsulation dot1q
+Switch(config-if)# switchport mode trunk
+Switch(config-if)# switchport trunk allowed vlan 10,20,30,40,99
+Switch(config-if)# switchport trunk native vlan 99
+Switch(config-if)# exit
+Switch(config)# interface gigabitEthernet1/0/4
+Switch(config-if)# switchport trunk mode trunk
+Switch(config-if)# switchport trunk allowed vlan 10,20,30,40,99
+Switch(config-if)# switchport trunk native vlan 99
+Switch(config-if)# exit
+Switch(config)# interface gigabitEthernet1/0/5
+Switch(config-if)# switchport trunk mode trunk
+Switch(config-if)# switchport trunk allowed vlan 10,20,30,40,99
+Switch(config-if)# switchport trunk native vlan 99
+Switch(config-if)# exit
+Switch(config)# interface gigabitEthernet1/0/6
+Switch(config-if)# switchport trunk mode trunk
+Switch(config-if)# switchport trunk allowed vlan 10,20,30,40,99
+Switch(config-if)# switchport trunk native vlan 99
+Switch(config-if)# exit
+
+Save Configuration
+Switch(config)# end
+Switch# write memory
+
+
+2. L2 Switch Configuration
+
+Create VLANs
+Switch> enable
+Switch# configure terminal
+Switch(config)# vlan 10
+Switch(config-vlan)# name ADMIN_SERVER
+Switch(config-vlan)# exit
+Switch(config)# vlan 20
+Switch(config-vlan)# name MANAGEMENT
+Switch(config-vlan)# exit
+Switch(config)# vlan 30
+Switch(config-vlan)# name IOT
+Switch(config-vlan)# exit
+Switch(config)# vlan 40
+Switch(config-vlan)# name USERS
+Switch(config-vlan)# exit
+Switch(config)# vlan 99
+Switch(config-vlan)# name NATIVE
+Switch(config-vlan)# exit
+
+Assign Access Ports
+Switch(config)# interface fa0/1
+Switch(config-if)# switchport mode access
+Switch(config-if)# switchport access vlan 10
+Switch(config-if)# exit
+Switch(config)# interface fa0/2
+Switch(config-if)# switchport mode access
+Switch(config-if)# switchport access vlan 10
+Switch(config-if)# exit
+Switch(config)# interface fa0/3
+Switch(config-if)# switchport mode access
+Switch(config-if)# switchport access vlan 20
+Switch(config-if)# exit
+Switch(config)# interface fa0/4
+Switch(config-if)# switchport mode access
+Switch(config-if)# switchport access vlan 30
+Switch(config-if)# exit
+Switch(config)# interface fa0/5
+Switch(config-if)# switchport mode access
+Switch(config-if)# switchport access vlan 40
+Switch(config-if)# exit
+
+Configure Trunk Port to MLS
+Switch(config)# interface fa0/6
+Switch(config-if)# switchport mode trunk
+Switch(config-if)# switchport trunk allowed vlan 10,20,30,40,99
+Switch(config-if)# switchport trunk native vlan 99
+Switch(config-if)# exit
+
+Shut Down Unused Ports
+Switch(config)# interface range fa0/7 - 24
+Switch(config-if)# shutdown
+Switch(config-if)# exit
+
+Save Configuration
+Switch(config)# end
+Switch# write memory
+
+
+3. End Devices
+
+Assign IPs & Default Gateways
+
+Admin/Servers VLAN10
+Server0: 192.168.10.10 /24 GW: 192.168.10.1
+PC0: 192.168.10.30 /24 GW: 192.168.10.1
+PC1: 192.168.10.20 /24 GW: 192.168.10.1
+
+Management VLAN20
+PC2: 192.168.20.10 /24 GW: 192.168.20.1
+PC3: 192.168.20.11 /24 GW: 192.168.20.1
+PC4: 192.168.20.12 /24 GW: 192.168.20.1
+
+IoT VLAN30
+IoT3: 192.168.30.10 /24 GW: 192.168.30.1
+IoT4: 192.168.30.12 /24 GW: 192.168.30.1
+IoT5: 192.168.30.13 /24 GW: 192.168.30.1
+IoT6: 192.168.30.11 /24 GW: 192.168.30.1
+
+Users VLAN40
+PC5: 192.168.40.10 /24 GW: 192.168.40.1
+PC6: 192.168.40.11 /24 GW: 192.168.40.1
+InsideAttacker: 192.168.40.12 /24 GW: 192.168.40.1
+
+
+4. Verification Commands
+
+On MLS
+show vlan brief
+show ip interface brief
+show interface trunk
+ping <device_ip>
+
+On L2 Switches
+show vlan brief
+show interface trunk
+show running-config
+
+
+On PCs
+ipconfig
+ping <gateway_ip>
+ping <device_in_another_vlan>
