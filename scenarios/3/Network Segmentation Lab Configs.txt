@@ -1,11 +1,11 @@
 Network Segmentation Lab Documentation
 
 IP Plan
-VLAN  Segment          Gateway        Devices                           Device IPs
-10    Admin/Servers    192.168.10.1   Server0, PC0, PC1                 192.168.10.10, 192.168.10.30, 192.168.10.20
-20    Management       192.168.20.1   PC2, PC3, PC4                     192.168.20.10, 192.168.20.11, 192.168.20.12
-30    IoT              192.168.30.1   IoT3, IoT4, IoT5, IoT6            192.168.30.10, 192.168.30.12, 192.168.30.13, 192.168.30.11
-40    Users            192.168.40.1   PC5, PC6, InsideAttacker          192.168.40.10, 192.168.40.11, 192.168.40.12
+VLAN  Segment          Gateway        Devices                           Device IPs (handled by dhcp)
+10    Admin/Servers    192.168.10.1   Server0, PC0, PC1                 192.168.10.10 (Server0)
+20    Management       192.168.20.1   PC2, PC3, PC4                     
+30    IoT              192.168.30.1   IoT3, IoT4, IoT5, IoT6            
+40    Users            192.168.40.1   PC5, PC6, InsideAttacker          
 
 1. Multilayer Switch Configuration
 
@@ -446,3 +446,4 @@ ping <device_in_another_vlan>
 * DHCP is now provided by the MLS for VLAN10/20/30/40 (use DHCP on PCs to receive addresses from the pools).
 * Excluded addresses are set to avoid conflicts with SVIs and static server IPs.
 * Router is the uplink for internet/WAN and has static routes back to the internal VLANs via the MLS.
+
