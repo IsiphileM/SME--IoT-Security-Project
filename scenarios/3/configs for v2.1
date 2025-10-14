@@ -1,0 +1,115 @@
+l3 switch
+
+interface GigabitEthernet1/0/1
+ description Link-to-Router
+ no switchport
+ ip address 172.16.0.2 255.255.255.252
+ no shutdown
+
+interface GigabitEthernet1/0/2
+ description Trunk-to-L2-SW0
+ switchport trunk encapsulation dot1q
+switchport trunk native vlan 10
+ switchport trunk allowed vlan 10,20,30,40
+ switchport mode trunk
+ no shutdown
+
+interface GigabitEthernet1/0/2
+ description Trunk-to-L2-SW1
+ switchport trunk encapsulation dot1q
+switchport trunk native vlan 20
+ switchport trunk allowed vlan 10,20,30,40
+ switchport mode trunk
+ no shutdown
+
+interface GigabitEthernet1/0/2
+ description Trunk-to-L2-SW2
+ switchport trunk encapsulation dot1q
+switchport trunk native vlan 30
+ switchport trunk allowed vlan 10,20,30,40
+ switchport mode trunk
+ no shutdown
+
+interface GigabitEthernet1/0/3
+ description Trunk-to-L2-SW1
+ switchport trunk encapsulation dot1q
+switchport trunk native vlan 40
+ switchport trunk allowed vlan 10,20,30,40
+ switchport mode trunk
+ no shutdown
+
+
+l2 switches
+
+vlan 10
+ name ADMIN
+
+interface range FastEthernet0/2 - 24
+ switchport mode access
+ switchport access vlan 10
+ex
+interface FastEthernet0/1
+ switchport mode trunk
+ switchport trunk native vlan 99
+ switchport trunk allowed vlan 10,20,30,40
+ no shutdown
+
+vlan 20
+ name MGMT
+
+interface range FastEthernet0/2 - 24
+ switchport mode access
+ switchport access vlan 20
+ex
+ interface FastEthernet0/1
+ switchport mode trunk
+ switchport trunk native vlan 99
+ switchport trunk allowed vlan 10,20,30,40
+ no shutdown
+
+vlan 30
+ name USERS
+
+interface range FastEthernet0/2 - 24
+ switchport mode access
+ switchport access vlan 30
+ex
+
+interface FastEthernet0/1
+ switchport mode trunk
+ switchport trunk native vlan 99
+ switchport trunk allowed vlan 10,20,30,40
+ no shutdown
+ 
+
+vlan 40
+ name IOT
+
+interface range FastEthernet0/2 - 24
+ switchport mode access
+ switchport access vlan 40
+ex
+ 
+interface FastEthernet0/1
+ switchport mode trunk
+ switchport trunk native vlan 99
+ switchport trunk allowed vlan 10,20,30,40
+ no shutdown
+
+router
+
+enable
+configure terminal
+hostname Edge-Router
+
+interface fa1/0
+ description Link-to-L3-SW
+ ip address 172.16.0.1 255.255.255.252
+ no shutdown
+
+interface fa0/0
+ description To-Outside
+ ip address 203.0.113.10 255.255.255.0
+no shutdown
+
+ip route 0.0.0.0 0.0.0.0 203.0.113.1
