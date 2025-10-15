@@ -9,7 +9,6 @@ interface GigabitEthernet1/0/1
 interface GigabitEthernet1/0/2
  description Trunk-to-L2-SW0
  switchport trunk encapsulation dot1q
-switchport trunk native vlan 10
  switchport trunk allowed vlan 10,20,30,40
  switchport mode trunk
  no shutdown
@@ -17,7 +16,6 @@ switchport trunk native vlan 10
 interface GigabitEthernet1/0/2
  description Trunk-to-L2-SW1
  switchport trunk encapsulation dot1q
-switchport trunk native vlan 20
  switchport trunk allowed vlan 10,20,30,40
  switchport mode trunk
  no shutdown
@@ -25,7 +23,6 @@ switchport trunk native vlan 20
 interface GigabitEthernet1/0/2
  description Trunk-to-L2-SW2
  switchport trunk encapsulation dot1q
-switchport trunk native vlan 30
  switchport trunk allowed vlan 10,20,30,40
  switchport mode trunk
  no shutdown
@@ -33,7 +30,6 @@ switchport trunk native vlan 30
 interface GigabitEthernet1/0/3
  description Trunk-to-L2-SW1
  switchport trunk encapsulation dot1q
-switchport trunk native vlan 40
  switchport trunk allowed vlan 10,20,30,40
  switchport mode trunk
  no shutdown
@@ -50,7 +46,6 @@ interface range FastEthernet0/2 - 24
 ex
 interface FastEthernet0/1
  switchport mode trunk
- switchport trunk native vlan 99
  switchport trunk allowed vlan 10,20,30,40
  no shutdown
 
@@ -63,7 +58,6 @@ interface range FastEthernet0/2 - 24
 ex
  interface FastEthernet0/1
  switchport mode trunk
- switchport trunk native vlan 99
  switchport trunk allowed vlan 10,20,30,40
  no shutdown
 
@@ -77,7 +71,6 @@ ex
 
 interface FastEthernet0/1
  switchport mode trunk
- switchport trunk native vlan 99
  switchport trunk allowed vlan 10,20,30,40
  no shutdown
  
@@ -92,7 +85,6 @@ ex
  
 interface FastEthernet0/1
  switchport mode trunk
- switchport trunk native vlan 99
  switchport trunk allowed vlan 10,20,30,40
  no shutdown
 
