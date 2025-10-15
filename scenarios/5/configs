@@ -1,0 +1,51 @@
+ASA FIREWALL
+enable
+configure terminal
+hostname ASA5506
+enable password strongerpassword123
+
+! Outside (to ISP / Attacker)
+interface GigabitEthernet1/2
+ nameif outside
+ security-level 0
+ ip address 203.0.113.10 255.255.255.0
+ no shutdown
+
+! Inside (to Router transit)
+interface GigabitEthernet1/1
+ nameif transit
+ security-level 50
+ ip address 10.0.0.2 255.255.255.252
+ no shutdown
+
+! Routing: default via ISP gateway
+route outside 0.0.0.0 0.0.0.0 203.0.113.1
+
+! Static route for LAN behind Router0 (so ASA knows how to reach 192.168.1.0/24)
+route transit 192.168.1.0 255.255.255.0 10.0.0.1
+
+! NAT: allow inside (LAN) to reach Internet via ASA outside address
+object network OBJ_LAN
+ subnet 192.168.1.0 255.255.255.0
+ nat (transit,outside) dynamic interface
+
+! Static NAT (port-forward) - expose internal web server (optional)
+object network OBJ_WEB
+ host 192.168.1.100
+ nat (transit,outside) static interface service tcp 80 80
+
+! Perimeter ACL - only allow what we need inbound
+access-list OUTSIDE_IN extended permit tcp any host 203.0.113.10 eq 80
+access-list OUTSIDE_IN extended permit tcp host 198.51.100.10 host 203.0.113.10 eq 22
+access-list OUTSIDE_IN extended permit icmp any host 203.0.113.10 echo
+access-list OUTSIDE_IN extended deny ip any any
+
+access-group OUTSIDE_IN in interface outside
+
+! Management: allow SSH from inside network and optionally from admin public IP
+ssh 192.168.1.0 255.255.255.0 transit
+ssh 198.51.100.10 255.255.255.255 outside   ! optional; add only if needed
+
+username admin password VeryStr0ngPass
+
+write memory
