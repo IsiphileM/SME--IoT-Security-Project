@@ -279,37 +279,7 @@ Switch(config-if)# exit
 Default route to Router
 Switch(config)# ip route 0.0.0.0 0.0.0.0 192.168.1.1
 
-DHCP - excluded addresses
-Switch(config)# ip dhcp excluded-address 192.168.10.1
-Switch(config)# ip dhcp excluded-address 192.168.10.10
-Switch(config)# ip dhcp excluded-address 192.168.20.1
-Switch(config)# ip dhcp excluded-address 192.168.30.1
-Switch(config)# ip dhcp excluded-address 192.168.40.1
 
-DHCP pools
-Switch(config)# ip dhcp pool VLAN10
-Switch(dhcp-config)# network 192.168.10.0 255.255.255.0
-Switch(dhcp-config)# default-router 192.168.10.1
-Switch(dhcp-config)# dns-server 8.8.8.8
-Switch(dhcp-config)# exit
-
-Switch(config)# ip dhcp pool VLAN20
-Switch(dhcp-config)# network 192.168.20.0 255.255.255.0
-Switch(dhcp-config)# default-router 192.168.20.1
-Switch(dhcp-config)# dns-server 8.8.8.8
-Switch(dhcp-config)# exit
-
-Switch(config)# ip dhcp pool VLAN30
-Switch(dhcp-config)# network 192.168.30.0 255.255.255.0
-Switch(dhcp-config)# default-router 192.168.30.1
-Switch(dhcp-config)# dns-server 8.8.8.8
-Switch(dhcp-config)# exit
-
-Switch(config)# ip dhcp pool VLAN40
-Switch(dhcp-config)# network 192.168.40.0 255.255.255.0
-Switch(dhcp-config)# default-router 192.168.40.1
-Switch(dhcp-config)# dns-server 8.8.8.8
-Switch(dhcp-config)# exit
 
 Save Configuration
 Switch(config)# end
@@ -485,6 +455,71 @@ interface GigabitEthernet1/0/3
  switchport mode trunk
  no shutdown
 
+Admin VLAN – full access
+ip access-list extended ADMIN_POLICY
+ remark Admin full access to all VLANs
+ permit ip 192.168.10.0 0.0.0.255 any
+
+Management VLAN – only reachable by Admin
+ip access-list extended MGMT_POLICY
+ remark Allow Admin to reach Management
+ permit ip 192.168.10.0 0.0.0.255 192.168.20.0 0.0.0.255
+ remark Deny all other sources to Management
+ deny ip any 192.168.20.0 0.0.0.255
+ remark Permit other outbound traffic
+ permit ip any any
+
+Users VLAN – only DHCP + ICMP replies + TCP established to Admin
+ip access-list extended USER_POLICY
+ remark Allow DHCP to Admin server
+ permit udp 192.168.30.0 0.0.0.255 host 192.168.10.10 eq bootps
+ permit udp 192.168.30.0 0.0.0.255 host 192.168.10.10 eq bootpc
+ remark Allow ICMP echo-replies from Admin
+ permit icmp 192.168.30.0 0.0.0.255 192.168.10.0 0.0.0.255 echo-reply
+ remark Allow TCP established sessions to Admin
+ permit tcp 192.168.30.0 0.0.0.255 192.168.10.0 0.0.0.255 established
+ remark Deny all other traffic from Users
+ deny ip 192.168.30.0 0.0.0.255 any
+ remark Permit everything else (optional)
+ permit ip any any
+
+IoT VLAN – only DHCP + ICMP replies + TCP established to Admin
+ip access-list extended IOT_POLICY
+ remark Allow DHCP to Admin server
+ permit udp 192.168.40.0 0.0.0.255 host 192.168.10.10 eq bootps
+ permit udp 192.168.40.0 0.0.0.255 host 192.168.10.10 eq bootpc
+ remark Allow ICMP echo-replies from Admin
+ permit icmp 192.168.40.0 0.0.0.255 192.168.10.0 0.0.0.255 echo-reply
+ remark Allow TCP established sessions to Admin
+ permit tcp 192.168.40.0 0.0.0.255 192.168.10.0 0.0.0.255 established
+ remark Deny all other traffic from IoT
+ deny ip 192.168.40.0 0.0.0.255 any
+ remark Permit everything else (optional)
+ permit ip any any
+
+Apply ACLs to VLAN interfaces
+interface Vlan10
+ description Admin VLAN (DHCP server here)
+ ip address 192.168.10.1 255.255.255.0
+ ip access-group ADMIN_POLICY in
+
+interface Vlan20
+ description Management VLAN
+ ip address 192.168.20.1 255.255.255.0
+ ip helper-address 192.168.10.10
+ ip access-group MGMT_POLICY in
+
+interface Vlan30
+ description Users VLAN
+ ip address 192.168.30.1 255.255.255.0
+ ip helper-address 192.168.10.10
+ ip access-group USER_POLICY in
+
+interface Vlan40
+ description IoT VLAN
+ ip address 192.168.40.1 255.255.255.0
+ ip helper-address 192.168.10.10
+ ip access-group IOT_POLICY in
 
 l2 switches
 
@@ -731,5 +766,6 @@ permit ip any any
 int fa0/0
  ip access-group OUTSIDE_INBOUND in
 exit
+
 
 
