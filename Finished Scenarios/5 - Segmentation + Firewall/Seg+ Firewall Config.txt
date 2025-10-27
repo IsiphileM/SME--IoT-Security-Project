@@ -1,0 +1,223 @@
+ASA FIREWALL
+enable
+configure terminal
+hostname ASA5506
+enable password strongerpassword123
+
+! Outside (to ISP / Attacker)
+interface GigabitEthernet1/2
+ nameif outside
+ security-level 0
+ ip address 203.0.113.10 255.255.255.0
+ no shutdown
+
+! Inside (to Router transit)
+interface GigabitEthernet1/1
+ nameif transit
+ security-level 50
+ ip address 10.0.0.2 255.255.255.252
+ no shutdown
+
+! Routing: default via ISP gateway
+route outside 0.0.0.0 0.0.0.0 203.0.113.1
+
+! Static route for LAN behind Router0 (so ASA knows how to reach 192.168.1.0/24)
+route transit 192.168.1.0 255.255.255.0 10.0.0.1
+
+! NAT: allow inside (LAN) to reach Internet via ASA outside address
+object network OBJ_LAN
+ subnet 192.168.1.0 255.255.255.0
+ nat (transit,outside) dynamic interface
+
+! Static NAT (port-forward) - expose internal web server (optional)
+object network OBJ_WEB
+ host 192.168.1.100
+ nat (transit,outside) static interface service tcp 80 80
+
+! Perimeter ACL - only allow what we need inbound
+access-list OUTSIDE_IN extended permit tcp any host 203.0.113.10 eq 80
+access-list OUTSIDE_IN extended permit tcp host 198.51.100.10 host 203.0.113.10 eq 22
+access-list OUTSIDE_IN extended permit icmp any host 203.0.113.10 echo
+access-list OUTSIDE_IN extended deny ip any any
+
+access-group OUTSIDE_IN in interface outside
+
+! Management: allow SSH from inside network and optionally from admin public IP
+ssh 192.168.1.0 255.255.255.0 transit
+ssh 198.51.100.10 255.255.255.255 outside   ! optional; add only if needed
+
+username admin password VeryStr0ngPass
+
+write memory
+
+
+router
+hostname Router0
+enable secret strongerpassword123
+no ip domain-lookup
+
+! Interface toward ASA
+interface FastEthernet0/0
+ description to-ASA-transit
+ ip address 10.0.0.1 255.255.255.252
+ no shutdown
+
+! Interface toward L3 switch
+interface FastEthernet1/0
+ description to-Core-L3Switch
+ ip address 192.168.1.1 255.255.255.0
+ no shutdown
+
+! Static route for Internet-bound traffic
+ip route 0.0.0.0 0.0.0.0 10.0.0.2
+
+! Save config
+end
+write memory
+
+
+l3 switch
+hostname CoreSwitch
+ip routing
+
+! --- VLANs
+vlan 10
+ name Admin
+vlan 20
+ name Management
+vlan 30
+ name Users
+vlan 40
+ name IoT
+
+! --- SVIs (routed interfaces)
+interface vlan 10
+ ip address 192.168.10.1 255.255.255.0
+ no shutdown
+
+interface vlan 20
+ ip address 192.168.20.1 255.255.255.0
+ ip helper-address 192.168.10.10   ! DHCP server in VLAN10
+ no shutdown
+
+interface vlan 30
+ ip address 192.168.30.1 255.255.255.0
+ ip helper-address 192.168.10.10
+ no shutdown
+
+interface vlan 40
+ ip address 192.168.40.1 255.255.255.0
+ ip helper-address 192.168.10.10
+ no shutdown
+
+! --- Default route to Router0 for Internet
+ip route 0.0.0.0 0.0.0.0 192.168.1.1
+
+
+! --- Trunk uplink to Router0
+interface GigabitEthernet1/0/1
+ description Uplink-to-Router0
+ ip address 192.168.1.2 255.255.255.0
+ no switchport
+ no shutdown
+
+! --- Trunks to L2 switches
+interface GigabitEthernet1/0/2
+ switchport trunk encapsulation dot1q
+ switchport mode trunk
+ no shutdown
+
+interface GigabitEthernet1/0/3
+ switchport trunk encapsulation dot1q
+ switchport mode trunk
+ no shutdown
+
+interface GigabitEthernet1/0/4
+ switchport trunk encapsulation dot1q
+ switchport mode trunk
+ no shutdown
+
+interface GigabitEthernet1/0/5
+ switchport trunk encapsulation dot1q
+ switchport mode trunk
+ no shutdown
+
+
+end
+write memory
+
+hostname Switch1
+vlan 10
+ name Admin
+interface range FastEthernet0/1 - 24
+ switchport mode access
+ switchport access vlan 10
+ no shutdown
+
+! Trunk uplink to Core
+interface GigabitEthernet0/1
+ switchport trunk encapsulation dot1q
+ switchport mode trunk
+ no shutdown
+
+hostname Switch2
+vlan 20
+ name Management
+interface range FastEthernet0/1 - 24
+ switchport mode access
+ switchport access vlan 20
+ no shutdown
+
+interface GigabitEthernet0/1
+ switchport trunk encapsulation dot1q
+ switchport mode trunk
+ no shutdown
+
+hostname Switch3
+vlan 30
+ name Users
+interface range FastEthernet0/1 - 24
+ switchport mode access
+ switchport access vlan 30
+ no shutdown
+
+interface GigabitEthernet0/1
+ switchport trunk encapsulation dot1q
+ switchport mode trunk
+ no shutdown
+
+hostname Switch4
+vlan 40
+ name IoT
+interface range FastEthernet0/1 - 24
+ switchport mode access
+ switchport access vlan 40
+ no shutdown
+
+interface GigabitEthernet0/1
+ switchport trunk encapsulation dot1q
+ switchport mode trunk
+ no shutdown
+Router0
+line con 0
+password strongerpassword123
+login
+exit
+
+line vty 0 4
+password strongerpassword123
+exit
+service password-encryption 
+exit
+Switch0
+line con 0
+password strongerpassword123
+login
+exit
+
+line vty 0 4
+password strongerpassword123
+exit
+service password-encryption 
+exit
+
