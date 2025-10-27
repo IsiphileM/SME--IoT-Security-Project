@@ -1,0 +1,795 @@
+﻿segmentation part1
+Network Segmentation Lab Documentation
+
+IP Plan
+VLAN  Segment          Gateway        Devices                           Device IPs (handled by dhcp)
+10    Admin/Servers    192.168.10.1   Server0, PC0, PC1                 192.168.10.10 (Server0)
+20    Management       192.168.20.1   PC2, PC3, PC4                     
+30    IoT              192.168.30.1   IoT3, IoT4, IoT5, IoT6            
+40    Users            192.168.40.1   PC5, PC6, InsideAttacker          
+
+1. Multilayer Switch Configuration
+
+Enable Routing
+Switch> enable
+Switch# configure terminal
+Switch(config)# ip routing
+
+Create VLANs
+Switch(config)# vlan 10
+Switch(config-vlan)# name ADMIN_SERVER
+Switch(config-vlan)# exit
+Switch(config)# vlan 20
+Switch(config-vlan)# name MANAGEMENT
+Switch(config-vlan)# exit
+Switch(config)# vlan 30
+Switch(config-vlan)# name IOT
+Switch(config-vlan)# exit
+Switch(config)# vlan 40
+Switch(config-vlan)# name USERS
+Switch(config-vlan)# exit
+Switch(config)# vlan 99
+Switch(config-vlan)# name NATIVE
+Switch(config-vlan)# exit
+
+Create SVIs (Gateway IPs)
+Switch(config)# interface vlan 10
+Switch(config-if)# ip address 192.168.10.1 255.255.255.0
+Switch(config-if)# no shutdown
+Switch(config-if)# exit
+Switch(config)# interface vlan 20
+Switch(config-if)# ip address 192.168.20.1 255.255.255.0
+Switch(config-if)# no shutdown
+Switch(config-if)# exit
+Switch(config)# interface vlan 30
+Switch(config-if)# ip address 192.168.30.1 255.255.255.0
+Switch(config-if)# no shutdown
+Switch(config-if)# exit
+Switch(config)# interface vlan 40
+Switch(config-if)# ip address 192.168.40.1 255.255.255.0
+Switch(config-if)# no shutdown
+Switch(config-if)# exit
+
+Configure Trunk Ports to L2 Switches
+Switch(config)# interface gigabitEthernet1/0/2
+Switch(config-if)# switchport trunk encapsulation dot1q
+Switch(config-if)# switchport mode trunk
+Switch(config-if)# switchport trunk allowed vlan 10,20,30,40,99
+Switch(config-if)# switchport trunk native vlan 99
+Switch(config-if)# exit
+Switch(config)# interface gigabitEthernet1/0/4
+Switch(config-if)# switchport trunk mode trunk
+Switch(config-if)# switchport trunk allowed vlan 10,20,30,40,99
+Switch(config-if)# switchport trunk native vlan 99
+Switch(config-if)# exit
+Switch(config)# interface gigabitEthernet1/0/5
+Switch(config-if)# switchport trunk mode trunk
+Switch(config-if)# switchport trunk allowed vlan 10,20,30,40,99
+Switch(config-if)# switchport trunk native vlan 99
+Switch(config-if)# exit
+Switch(config)# interface gigabitEthernet1/0/6
+Switch(config-if)# switchport trunk mode trunk
+Switch(config-if)# switchport trunk allowed vlan 10,20,30,40,99
+Switch(config-if)# switchport trunk native vlan 99
+Switch(config-if)# exit
+
+Save Configuration
+Switch(config)# end
+Switch# write memory
+
+
+2. L2 Switch Configuration
+
+Create VLANs
+Switch> enable
+Switch# configure terminal
+Switch(config)# vlan 10
+Switch(config-vlan)# name ADMIN_SERVER
+Switch(config-vlan)# exit
+Switch(config)# vlan 20
+Switch(config-vlan)# name MANAGEMENT
+Switch(config-vlan)# exit
+Switch(config)# vlan 30
+Switch(config-vlan)# name IOT
+Switch(config-vlan)# exit
+Switch(config)# vlan 40
+Switch(config-vlan)# name USERS
+Switch(config-vlan)# exit
+Switch(config)# vlan 99
+Switch(config-vlan)# name NATIVE
+Switch(config-vlan)# exit
+
+Assign Access Ports
+Switch(config)# interface fa0/1
+Switch(config-if)# switchport mode access
+Switch(config-if)# switchport access vlan 10
+Switch(config-if)# exit
+Switch(config)# interface fa0/2
+Switch(config-if)# switchport mode access
+Switch(config-if)# switchport access vlan 10
+Switch(config-if)# exit
+Switch(config)# interface fa0/3
+Switch(config-if)# switchport mode access
+Switch(config-if)# switchport access vlan 20
+Switch(config-if)# exit
+Switch(config)# interface fa0/4
+Switch(config-if)# switchport mode access
+Switch(config-if)# switchport access vlan 30
+Switch(config-if)# exit
+Switch(config)# interface fa0/5
+Switch(config-if)# switchport mode access
+Switch(config-if)# switchport access vlan 40
+Switch(config-if)# exit
+
+Configure Trunk Port to MLS
+Switch(config)# interface fa0/6
+Switch(config-if)# switchport mode trunk
+Switch(config-if)# switchport trunk allowed vlan 10,20,30,40,99
+Switch(config-if)# switchport trunk native vlan 99
+Switch(config-if)# exit
+
+Shut Down Unused Ports
+Switch(config)# interface range fa0/7 - 24
+Switch(config-if)# shutdown
+Switch(config-if)# exit
+
+Save Configuration
+Switch(config)# end
+Switch# write memory
+
+
+3. End Devices
+
+Assign IPs & Default Gateways
+
+Admin/Servers VLAN10
+Server0: 192.168.10.10 /24 GW: 192.168.10.1
+PC0: 192.168.10.30 /24 GW: 192.168.10.1
+PC1: 192.168.10.20 /24 GW: 192.168.10.1
+
+Management VLAN20
+PC2: 192.168.20.10 /24 GW: 192.168.20.1
+PC3: 192.168.20.11 /24 GW: 192.168.20.1
+PC4: 192.168.20.12 /24 GW: 192.168.20.1
+
+IoT VLAN30
+IoT3: 192.168.30.10 /24 GW: 192.168.30.1
+IoT4: 192.168.30.12 /24 GW: 192.168.30.1
+IoT5: 192.168.30.13 /24 GW: 192.168.30.1
+IoT6: 192.168.30.11 /24 GW: 192.168.30.1
+
+Users VLAN40
+PC5: 192.168.40.10 /24 GW: 192.168.40.1
+PC6: 192.168.40.11 /24 GW: 192.168.40.1
+InsideAttacker: 192.168.40.12 /24 GW: 192.168.40.1
+
+
+4. Verification Commands
+
+On MLS
+show vlan brief
+show ip interface brief
+show interface trunk
+ping <device_ip>
+
+On L2 Switches
+show vlan brief
+show interface trunk
+show running-config
+
+
+On PCs
+ipconfig
+ping <gateway_ip>
+ping <device_in_another_vlan>
+
+
+
+
+
+
+
+
+
+
+
+
+
+version2.1 of the configs
+Network Segmentation Lab Documentation
+
+IP Plan
+VLAN  Segment          Gateway        Devices                           Device IPs
+10    Admin/Servers    192.168.10.1   Server0, PC0, PC1                 192.168.10.10, 192.168.10.30, 192.168.10.20
+20    Management       192.168.20.1   PC2, PC3, PC4                     192.168.20.10, 192.168.20.11, 192.168.20.12
+30    IoT              192.168.30.1   IoT3, IoT4, IoT5, IoT6            192.168.30.10, 192.168.30.12, 192.168.30.13, 192.168.30.11
+40    Users            192.168.40.1   PC5, PC6, InsideAttacker          192.168.40.10, 192.168.40.11, 192.168.40.12
+
+
+1. Multilayer Switch Configuration
+
+Enable Routing
+Switch> enable
+Switch# configure terminal
+Switch(config)# ip routing
+
+Create VLANs
+Switch(config)# vlan 10
+Switch(config-vlan)# name ADMIN_SERVER
+Switch(config-vlan)# exit
+Switch(config)# vlan 20
+Switch(config-vlan)# name MANAGEMENT
+Switch(config-vlan)# exit
+Switch(config)# vlan 30
+Switch(config-vlan)# name IOT
+Switch(config-vlan)# exit
+Switch(config)# vlan 40
+Switch(config-vlan)# name USERS
+Switch(config-vlan)# exit
+Switch(config)# vlan 99
+Switch(config-vlan)# name NATIVE
+Switch(config-vlan)# exit
+
+Create SVIs (Gateway IPs)
+Switch(config)# interface vlan 10
+Switch(config-if)# ip address 192.168.10.1 255.255.255.0
+Switch(config-if)# no shutdown
+Switch(config-if)# exit
+Switch(config)# interface vlan 20
+Switch(config-if)# ip address 192.168.20.1 255.255.255.0
+Switch(config-if)# no shutdown
+Switch(config-if)# exit
+Switch(config)# interface vlan 30
+Switch(config-if)# ip address 192.168.30.1 255.255.255.0
+Switch(config-if)# no shutdown
+Switch(config-if)# exit
+Switch(config)# interface vlan 40
+Switch(config-if)# ip address 192.168.40.1 255.255.255.0
+Switch(config-if)# no shutdown
+Switch(config-if)# exit
+
+Configure Trunk Ports to L2 Switches
+Switch(config)# interface gigabitEthernet1/0/2
+Switch(config-if)# switchport mode trunk
+Switch(config-if)# switchport trunk allowed vlan 10,20,30,40,99
+Switch(config-if)# switchport trunk native vlan 99
+Switch(config-if)# exit
+Switch(config)# interface gigabitEthernet1/0/4
+Switch(config-if)# switchport mode trunk
+Switch(config-if)# switchport trunk allowed vlan 10,20,30,40,99
+Switch(config-if)# switchport trunk native vlan 99
+Switch(config-if)# exit
+Switch(config)# interface gigabitEthernet1/0/5
+Switch(config-if)# switchport mode trunk
+Switch(config-if)# switchport trunk allowed vlan 10,20,30,40,99
+Switch(config-if)# switchport trunk native vlan 99
+Switch(config-if)# exit
+Switch(config)# interface gigabitEthernet1/0/6
+Switch(config-if)# switchport mode trunk
+Switch(config-if)# switchport trunk allowed vlan 10,20,30,40,99
+Switch(config-if)# switchport trunk native vlan 99
+Switch(config-if)# exit
+
+Configure link to Router (VLAN1)
+Switch(config)# interface Vlan1
+Switch(config-if)# ip address 192.168.1.2 255.255.255.0
+Switch(config-if)# no shutdown
+Switch(config-if)# exit
+
+Default route to Router
+Switch(config)# ip route 0.0.0.0 0.0.0.0 192.168.1.1
+
+
+
+Save Configuration
+Switch(config)# end
+Switch# write memory
+
+
+2. L2 Switch Configuration
+
+Create VLANs
+Switch> enable
+Switch# configure terminal
+Switch(config)# vlan 10
+Switch(config-vlan)# name ADMIN_SERVER
+Switch(config-vlan)# exit
+Switch(config)# vlan 20
+Switch(config-vlan)# name MANAGEMENT
+Switch(config-vlan)# exit
+Switch(config)# vlan 30
+Switch(config-vlan)# name IOT
+Switch(config-vlan)# exit
+Switch(config)# vlan 40
+Switch(config-vlan)# name USERS
+Switch(config-vlan)# exit
+Switch(config)# vlan 99
+Switch(config-vlan)# name NATIVE
+Switch(config-vlan)# exit
+
+Assign Access Ports
+Switch(config)# interface fa0/1
+Switch(config-if)# switchport mode access
+Switch(config-if)# switchport access vlan 10
+Switch(config-if)# exit
+Switch(config)# interface fa0/2
+Switch(config-if)# switchport mode access
+Switch(config-if)# switchport access vlan 10
+Switch(config-if)# exit
+Switch(config)# interface fa0/3
+Switch(config-if)# switchport mode access
+Switch(config-if)# switchport access vlan 20
+Switch(config-if)# exit
+Switch(config)# interface fa0/4
+Switch(config-if)# switchport mode access
+Switch(config-if)# switchport access vlan 30
+Switch(config-if)# exit
+Switch(config)# interface fa0/5
+Switch(config-if)# switchport mode access
+Switch(config-if)# switchport access vlan 40
+Switch(config-if)# exit
+
+Configure Trunk Port to MLS
+Switch(config)# interface fa0/6
+Switch(config-if)# switchport mode trunk
+Switch(config-if)# switchport trunk allowed vlan 10,20,30,40,99
+Switch(config-if)# switchport trunk native vlan 99
+Switch(config-if)# exit
+
+Shut Down Unused Ports
+Switch(config)# interface range fa0/7 - 24
+Switch(config-if)# shutdown
+Switch(config-if)# exit
+
+Save Configuration
+Switch(config)# end
+Switch# write memory
+
+
+3. Router Configuration (link to MLS and static routes back to VLANs)
+   Router> enable
+   Router# configure terminal
+   Router(config)# interface FastEthernet1/0
+   Router(config-if)# description LINK_TO_MLS
+   Router(config-if)# ip address 192.168.1.1 255.255.255.0
+   Router(config-if)# no shutdown
+   Router(config-if)# exit
+   Router(config)# ip route 192.168.10.0 255.255.255.0 192.168.1.2
+   Router(config)# ip route 192.168.20.0 255.255.255.0 192.168.1.2
+   Router(config)# ip route 192.168.30.0 255.255.255.0 192.168.1.2
+   Router(config)# ip route 192.168.40.0 255.255.255.0 192.168.1.2
+   Router(config)# end
+   Router# write memory
+
+
+4. End Devices
+
+Assign IPs & Default Gateways (static examples) or use DHCP (MLS DHCP pools above)
+
+Admin/Servers VLAN10
+Server0: 192.168.10.10 /24 GW: 192.168.10.1 (or DHCP)
+PC0: 192.168.10.30 /24 GW: 192.168.10.1 (or DHCP)
+PC1: 192.168.10.20 /24 GW: 192.168.10.1 (or DHCP)
+
+Management VLAN20
+PC2: 192.168.20.10 /24 GW: 192.168.20.1 (or DHCP)
+PC3: 192.168.20.11 /24 GW: 192.168.20.1 (or DHCP)
+PC4: 192.168.20.12 /24 GW: 192.168.20.1 (or DHCP)
+
+IoT VLAN30
+IoT3: 192.168.30.10 /24 GW: 192.168.30.1 (or DHCP)
+IoT4: 192.168.30.12 /24 GW: 192.168.30.1 (or DHCP)
+IoT5: 192.168.30.13 /24 GW: 192.168.30.1 (or DHCP)
+IoT6: 192.168.30.11 /24 GW: 192.168.30.1 (or DHCP)
+
+Users VLAN40
+PC5: 192.168.40.10 /24 GW: 192.168.40.1 (or DHCP)
+PC6: 192.168.40.11 /24 GW: 192.168.40.1 (or DHCP)
+InsideAttacker: 192.168.40.12 /24 GW: 192.168.40.1 (or DHCP)
+
+
+5. Verification Commands
+
+On MLS
+show vlan brief
+show ip interface brief
+show interface trunk
+show ip dhcp binding
+show ip route
+ping <device_ip>
+
+On L2 Switches
+show vlan brief
+show interface trunk
+show running-config
+
+On Router
+show ip route
+show running-config | section interface FastEthernet1/0
+
+On PCs
+ipconfig
+ping <gateway_ip>
+ping <device_in_another_vlan>
+
+6. Notes
+
+* DHCP is now provided by the MLS for VLAN10/20/30/40 (use DHCP on PCs to receive addresses from the pools).
+* Excluded addresses are set to avoid conflicts with SVIs and static server IPs.
+* Router is the uplink for internet/WAN and has static routes back to the internal VLANs via the MLS.
+
+Segmentation part2
+l3 switch
+
+interface GigabitEthernet1/0/1
+ description Link-to-Router
+ no switchport
+ ip address 172.16.0.2 255.255.255.252
+ no shutdown
+
+interface GigabitEthernet1/0/2
+ description Trunk-to-L2-SW0
+ switchport trunk encapsulation dot1q
+ switchport trunk allowed vlan 10,20,30,40
+ switchport mode trunk
+ no shutdown
+
+interface GigabitEthernet1/0/2
+ description Trunk-to-L2-SW1
+ switchport trunk encapsulation dot1q
+ switchport trunk allowed vlan 10,20,30,40
+ switchport mode trunk
+ no shutdown
+
+interface GigabitEthernet1/0/2
+ description Trunk-to-L2-SW2
+ switchport trunk encapsulation dot1q
+ switchport trunk allowed vlan 10,20,30,40
+ switchport mode trunk
+ no shutdown
+
+interface GigabitEthernet1/0/3
+ description Trunk-to-L2-SW1
+ switchport trunk encapsulation dot1q
+ switchport trunk allowed vlan 10,20,30,40
+ switchport mode trunk
+ no shutdown
+
+Admin VLAN – full access
+ip access-list extended ADMIN_POLICY
+ remark Admin full access to all VLANs
+ permit ip 192.168.10.0 0.0.0.255 any
+
+Management VLAN – only reachable by Admin
+ip access-list extended MGMT_POLICY
+ remark Allow Admin to reach Management
+ permit ip 192.168.10.0 0.0.0.255 192.168.20.0 0.0.0.255
+ remark Deny all other sources to Management
+ deny ip any 192.168.20.0 0.0.0.255
+ remark Permit other outbound traffic
+ permit ip any any
+
+Users VLAN – only DHCP + ICMP replies + TCP established to Admin
+ip access-list extended USER_POLICY
+ remark Allow DHCP to Admin server
+ permit udp 192.168.30.0 0.0.0.255 host 192.168.10.10 eq bootps
+ permit udp 192.168.30.0 0.0.0.255 host 192.168.10.10 eq bootpc
+ remark Allow ICMP echo-replies from Admin
+ permit icmp 192.168.30.0 0.0.0.255 192.168.10.0 0.0.0.255 echo-reply
+ remark Allow TCP established sessions to Admin
+ permit tcp 192.168.30.0 0.0.0.255 192.168.10.0 0.0.0.255 established
+ remark Deny all other traffic from Users
+ deny ip 192.168.30.0 0.0.0.255 any
+ remark Permit everything else (optional)
+ permit ip any any
+
+IoT VLAN – only DHCP + ICMP replies + TCP established to Admin
+ip access-list extended IOT_POLICY
+ remark Allow DHCP to Admin server
+ permit udp 192.168.40.0 0.0.0.255 host 192.168.10.10 eq bootps
+ permit udp 192.168.40.0 0.0.0.255 host 192.168.10.10 eq bootpc
+ remark Allow ICMP echo-replies from Admin
+ permit icmp 192.168.40.0 0.0.0.255 192.168.10.0 0.0.0.255 echo-reply
+ remark Allow TCP established sessions to Admin
+ permit tcp 192.168.40.0 0.0.0.255 192.168.10.0 0.0.0.255 established
+ remark Deny all other traffic from IoT
+ deny ip 192.168.40.0 0.0.0.255 any
+ remark Permit everything else (optional)
+ permit ip any any
+
+Apply ACLs to VLAN interfaces
+interface Vlan10
+ description Admin VLAN (DHCP server here)
+ ip address 192.168.10.1 255.255.255.0
+ ip access-group ADMIN_POLICY in
+
+interface Vlan20
+ description Management VLAN
+ ip address 192.168.20.1 255.255.255.0
+ ip helper-address 192.168.10.10
+ ip access-group MGMT_POLICY in
+
+interface Vlan30
+ description Users VLAN
+ ip address 192.168.30.1 255.255.255.0
+ ip helper-address 192.168.10.10
+ ip access-group USER_POLICY in
+
+interface Vlan40
+ description IoT VLAN
+ ip address 192.168.40.1 255.255.255.0
+ ip helper-address 192.168.10.10
+ ip access-group IOT_POLICY in
+
+l2 switches
+
+vlan 10
+ name ADMIN
+
+interface range FastEthernet0/2 - 24
+ switchport mode access
+ switchport access vlan 10
+ex
+interface FastEthernet0/1
+ switchport mode trunk
+ switchport trunk allowed vlan 10,20,30,40
+ no shutdown
+
+vlan 20
+ name MGMT
+
+interface range FastEthernet0/2 - 24
+ switchport mode access
+ switchport access vlan 20
+ex
+ interface FastEthernet0/1
+ switchport mode trunk
+ switchport trunk allowed vlan 10,20,30,40
+ no shutdown
+
+vlan 30
+ name USERS
+
+interface range FastEthernet0/2 - 24
+ switchport mode access
+ switchport access vlan 30
+ex
+
+interface FastEthernet0/1
+ switchport mode trunk
+ switchport trunk allowed vlan 10,20,30,40
+ no shutdown
+ 
+
+vlan 40
+ name IOT
+
+interface range FastEthernet0/2 - 24
+ switchport mode access
+ switchport access vlan 40
+ex
+ 
+interface FastEthernet0/1
+ switchport mode trunk
+ switchport trunk allowed vlan 10,20,30,40
+ no shutdown
+
+router
+
+enable
+configure terminal
+hostname Edge-Router
+
+interface fa1/0
+ description Link-to-L3-SW
+ ip address 172.16.0.1 255.255.255.252
+ no shutdown
+
+interface fa0/0
+ description To-Outside
+ ip address 203.0.113.10 255.255.255.0
+no shutdown
+
+ip route 0.0.0.0 0.0.0.0 203.0.113.1
+
+Firewall
+! ---- ASA basic + NAT + perimeter ACL ----
+enable
+configure terminal
+hostname ASA5506
+enable password strongerpassword123
+
+! Outside (to ISP / Attacker)
+interface GigabitEthernet1/2
+ nameif outside
+ security-level 0
+ ip address 203.0.113.10 255.255.255.0
+ no shutdown
+
+! Inside (to Router transit)
+interface GigabitEthernet1/1
+ nameif transit
+ security-level 50
+ ip address 10.0.0.2 255.255.255.252
+ no shutdown
+
+! Routing: default via ISP gateway
+route outside 0.0.0.0 0.0.0.0 203.0.113.1
+
+! Static route for LAN behind Router0 (so ASA knows how to reach 192.168.1.0/24)
+route transit 192.168.1.0 255.255.255.0 10.0.0.1
+
+! NAT: allow inside (LAN) to reach Internet via ASA outside address
+object network OBJ_LAN
+ subnet 192.168.1.0 255.255.255.0
+ nat (transit,outside) dynamic interface
+
+! Static NAT (port-forward) - expose internal web server (optional)
+object network OBJ_WEB
+ host 192.168.1.100
+ nat (transit,outside) static interface service tcp 80 80
+
+! Perimeter ACL - only allow what we need inbound
+access-list OUTSIDE_IN extended permit tcp any host 203.0.113.10 eq 80
+access-list OUTSIDE_IN extended permit tcp host 198.51.100.10 host 203.0.113.10 eq 22
+access-list OUTSIDE_IN extended permit icmp any host 203.0.113.10 echo
+access-list OUTSIDE_IN extended deny ip any any
+
+access-group OUTSIDE_IN in interface outside
+
+! Management: allow SSH from inside network and optionally from admin public IP
+ssh 192.168.1.0 255.255.255.0 transit
+ssh 198.51.100.10 255.255.255.255 outside   ! optional; add only if needed
+
+username admin password VeryStr0ngPass
+
+write memory
+
+! ---- Router0 minimal config: transit toward ASA, LAN toward switch ----
+hostname Router0
+enable secret strongerpassword123
+no ip domain-lookup
+
+! Interface toward ASA (transit)
+interface FastEthernet0/0
+ description to-ASA-transit
+ ip address 10.0.0.1 255.255.255.252
+ no shutdown
+
+! LAN interface toward L2 switch
+interface FastEthernet1/0
+ description LAN - inside
+ ip address 192.168.1.1 255.255.255.0
+ no shutdown
+
+! Default route: send Internet-bound traffic to ASA transit IP
+ip route 0.0.0.0 0.0.0.0 10.0.0.2
+
+! Ensure no NAT here (ASA handles NAT)
+no ip nat inside source list 1 interface FastEthernet0/0 overload
+
+interface FastEthernet1/0
+ no ip nat inside
+
+interface FastEthernet0/0
+ no ip nat outside
+
+! Save
+end
+write memory
+3) DHCP server (Packet Tracer Server GUI or Linux isc-dhcpd)
+Packet Tracer Server GUI (fast)
+
+IP: 192.168.1.100 / mask 255.255.255.0 / gateway 192.168.1.1
+
+Services → DHCP:
+
+Pool name: SMEPOOL
+
+Default gateway: 192.168.1.1
+
+DNS: 8.8.8.8
+
+Start IP: 192.168.1.21
+
+Subnet mask: 255.255.255.0
+
+Max users: 150
+
+! ---- Switch0 ----
+
+hostname Switch0
+enable secret strongerpassword123
+! keep default: all ports in VLAN1, no mgmt IP
+! Connect:
+! Fa0/1 -> PC-Admin
+! Fa0/2 -> PC-Employee
+! Fa0/3 -> IoT Camera
+! Fa0/4 -> Server (DHCP) .100
+! Fa0/24 -> Router0 Fa1/0
+
+
+
+ACLs
+ROUTER0 CONFIG
+1. Deny IoT to Admin/Servers and Management
+! Enter global configuration mode
+configure terminal
+! Create the extended ACL for the IoT network
+ip access-list extended IOT_INBOUND
+! Deny any traffic from IoT to the Admin/Servers network
+ deny   ip 192.168.30.0 0.0.0.255 192.168.10.0 0.0.0.255
+! Deny IoT from accessing router via SSH (port 22) or Telnet (port 23)
+ deny   tcp 192.168.30.0 0.0.0.255 any eq 22
+ deny   tcp 192.168.30.0 0.0.0.255 any eq 23
+! Permit all other traffic (to the internet)
+! This is crucial to avoid blocking legitimate IoT traffic
+ permit ip any any
+! Apply the ACL to the IoT gateway interface
+Int fa1/0
+ ip access-group IOT_INBOUND in
+exit
+2. Restrict User to Admin via Jump-Host
+! Enter global configuration mode
+configure terminal
+! Create the extended ACL for the User network
+ip access-list extended USER_INBOUND
+! Permit traffic from any User to the specific Jump-Host
+ permit ip 192.168.20.0 0.0.0.255 host 192.168.10.10
+! Deny traffic from any User to the rest of the Admin network
+ deny   ip 192.168.20.0 0.0.0.255 192.168.10.0 0.0.0.255
+! Permit all other traffic (e.g., to the internet)
+ permit ip any any
+! Apply the ACL to the User gateway interface
+Int fa1/0
+ ip access-group USER_INBOUND in
+exit 
+3. Deny Outside Access
+! Enter global configuration mode
+configure terminal
+! Create the extended ACL for the external interface
+ip access-list extended OUTSIDE_INBOUND
+! Permit return traffic for connections initiated from inside the network
+ permit tcp any any established
+! Deny common attack vectors and unsolicited traffic to private ranges
+ deny   ip any 192.168.0.0 0.0.255.255
+ deny   ip any 10.0.0.0 0.255.255.255
+ deny   ip any 172.16.0.0 0.15.255.255
+! Explicitly permit any other legitimate traffic you need (e.g., VPN)
+ip access-list extended OUTSIDE_INBOUND
+permit udp any any eq 500
+permit esp any any
+permit ah any any
+permit tcp any any eq 443
+permit ip any any
+! Apply the ACL to the external-facing interface
+int fa0/0
+ ip access-group OUTSIDE_INBOUND in
+exit
+
+Router0
+line con 0
+password strongerpassword123
+login
+exit
+
+line vty 0 4
+password strongerpassword123
+exit
+service password-encryption 
+exit
+Switch0
+line con 0
+password strongerpassword123
+login
+exit
+
+line vty 0 4
+password strongerpassword123
+exit
+service password-encryption 
+exit
+
+
+
+
