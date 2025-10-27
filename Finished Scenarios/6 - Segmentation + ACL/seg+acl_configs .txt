@@ -1,0 +1,196 @@
+l3 switch
+
+interface GigabitEthernet1/0/1
+ description Link-to-Router
+ no switchport
+ ip address 172.16.0.2 255.255.255.252
+ no shutdown
+
+interface GigabitEthernet1/0/2
+ description Trunk-to-L2-SW0
+ switchport trunk encapsulation dot1q
+switchport trunk native vlan 10
+ switchport trunk allowed vlan 10,20,30,40
+ switchport mode trunk
+ no shutdown
+
+interface GigabitEthernet1/0/2
+ description Trunk-to-L2-SW1
+ switchport trunk encapsulation dot1q
+switchport trunk native vlan 20
+ switchport trunk allowed vlan 10,20,30,40
+ switchport mode trunk
+ no shutdown
+
+interface GigabitEthernet1/0/2
+ description Trunk-to-L2-SW2
+ switchport trunk encapsulation dot1q
+switchport trunk native vlan 30
+ switchport trunk allowed vlan 10,20,30,40
+ switchport mode trunk
+ no shutdown
+
+interface GigabitEthernet1/0/3
+ description Trunk-to-L2-SW1
+ switchport trunk encapsulation dot1q
+switchport trunk native vlan 40
+ switchport trunk allowed vlan 10,20,30,40
+ switchport mode trunk
+ no shutdown
+
+
+l2 switches
+
+vlan 10
+ name ADMIN
+
+interface range FastEthernet0/2 - 24
+ switchport mode access
+ switchport access vlan 10
+ex
+interface FastEthernet0/1
+ switchport mode trunk
+ switchport trunk allowed vlan 10,20,30,40
+ no shutdown
+
+vlan 20
+ name MGMT
+
+interface range FastEthernet0/2 - 24
+ switchport mode access
+ switchport access vlan 20
+ex
+ interface FastEthernet0/1
+ switchport mode trunk
+ switchport trunk allowed vlan 10,20,30,40
+ no shutdown
+
+vlan 30
+ name USERS
+
+interface range FastEthernet0/2 - 24
+ switchport mode access
+ switchport access vlan 30
+ex
+
+interface FastEthernet0/1
+ switchport mode trunk
+ switchport trunk allowed vlan 10,20,30,40
+ no shutdown
+ 
+
+vlan 40
+ name IOT
+
+interface range FastEthernet0/2 - 24
+ switchport mode access
+ switchport access vlan 40
+ex
+ 
+interface FastEthernet0/1
+ switchport mode trunk
+ switchport trunk allowed vlan 10,20,30,40
+ no shutdown
+
+router
+
+enable
+configure terminal
+hostname Edge-Router
+
+interface fa1/0
+ description Link-to-L3-SW
+ ip address 172.16.0.1 255.255.255.252
+ no shutdown
+
+interface fa0/0
+ description To-Outside
+ ip address 203.0.113.10 255.255.255.0
+no shutdown
+
+ip route 0.0.0.0 0.0.0.0 203.0.113.1
+
+Multilayer Switch (MLS)
+Admin VLAN – full access
+ip access-list extended ADMIN_POLICY
+ remark Admin full access to all VLANs
+ permit ip 192.168.10.0 0.0.0.255 any
+
+Management VLAN – only reachable by Admin
+ip access-list extended MGMT_POLICY
+ remark Allow Admin to reach Management
+ permit ip 192.168.10.0 0.0.0.255 192.168.20.0 0.0.0.255
+ remark Deny all other sources to Management
+ deny ip any 192.168.20.0 0.0.0.255
+ remark Permit other outbound traffic
+ permit ip any any
+
+Users VLAN – only DHCP + ICMP replies + TCP established to Admin
+ip access-list extended USER_POLICY
+ remark Allow DHCP to Admin server
+ permit udp 192.168.30.0 0.0.0.255 host 192.168.10.10 eq bootps
+ permit udp 192.168.30.0 0.0.0.255 host 192.168.10.10 eq bootpc
+ remark Allow ICMP echo-replies from Admin
+ permit icmp 192.168.30.0 0.0.0.255 192.168.10.0 0.0.0.255 echo-reply
+ remark Allow TCP established sessions to Admin
+ permit tcp 192.168.30.0 0.0.0.255 192.168.10.0 0.0.0.255 established
+ remark Deny all other traffic from Users
+ deny ip 192.168.30.0 0.0.0.255 any
+ remark Permit everything else (optional)
+ permit ip any any
+
+IoT VLAN – only DHCP + ICMP replies + TCP established to Admin
+ip access-list extended IOT_POLICY
+ remark Allow DHCP to Admin server
+ permit udp 192.168.40.0 0.0.0.255 host 192.168.10.10 eq bootps
+ permit udp 192.168.40.0 0.0.0.255 host 192.168.10.10 eq bootpc
+ remark Allow ICMP echo-replies from Admin
+ permit icmp 192.168.40.0 0.0.0.255 192.168.10.0 0.0.0.255 echo-reply
+ remark Allow TCP established sessions to Admin
+ permit tcp 192.168.40.0 0.0.0.255 192.168.10.0 0.0.0.255 established
+ remark Deny all other traffic from IoT
+ deny ip 192.168.40.0 0.0.0.255 any
+ remark Permit everything else (optional)
+ permit ip any any
+
+Apply ACLs to VLAN interfaces
+interface Vlan10
+ description Admin VLAN (DHCP server here)
+ ip address 192.168.10.1 255.255.255.0
+ ip access-group ADMIN_POLICY in
+
+interface Vlan20
+ description Management VLAN
+ ip address 192.168.20.1 255.255.255.0
+ ip helper-address 192.168.10.10
+ ip access-group MGMT_POLICY in
+
+interface Vlan30
+ description Users VLAN
+ ip address 192.168.30.1 255.255.255.0
+ ip helper-address 192.168.10.10
+ ip access-group USER_POLICY in
+
+interface Vlan40
+ description IoT VLAN
+ ip address 192.168.40.1 255.255.255.0
+ ip helper-address 192.168.10.10
+ ip access-group IOT_POLICY in
+
+Deny Outside Access
+Router0
+! Enter configuration mode
+configure terminal
+ip access-list extended OUTSIDE_IN_BLOCK
+  ! Deny any traffic from the outside attempting to reach your internal subnets
+  deny ip any 192.168.10.0 0.0.0.255
+  deny ip any 192.168.20.0 0.0.0.255
+  deny ip any 192.168.30.0 0.0.0.255
+  deny ip any 192.168.40.0 0.0.0.255
+  permit ip any any
+exit
+ Apply the ACL to the outside-facing interface
+Int fa0/0
+  ip access-group OUTSIDE_IN_BLOCK in
+exit
+
