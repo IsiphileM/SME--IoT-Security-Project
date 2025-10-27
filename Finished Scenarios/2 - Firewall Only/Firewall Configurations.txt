@@ -1,0 +1,139 @@
+﻿! ---- ASA basic + NAT + perimeter ACL ----
+enable
+configure terminal
+hostname ASA5506
+enable password strongerpassword123
+
+! Outside (to ISP / Attacker)
+interface GigabitEthernet1/2
+ nameif outside
+ security-level 0
+ ip address 203.0.113.10 255.255.255.0
+ no shutdown
+
+! Inside (to Router transit)
+interface GigabitEthernet1/1
+ nameif transit
+ security-level 50
+ ip address 10.0.0.2 255.255.255.252
+ no shutdown
+
+! Routing: default via ISP gateway
+route outside 0.0.0.0 0.0.0.0 203.0.113.1
+
+! Static route for LAN behind Router0 (so ASA knows how to reach 192.168.1.0/24)
+route transit 192.168.1.0 255.255.255.0 10.0.0.1
+
+! NAT: allow inside (LAN) to reach Internet via ASA outside address
+object network OBJ_LAN
+ subnet 192.168.1.0 255.255.255.0
+ nat (transit,outside) dynamic interface
+
+! Static NAT (port-forward) - expose internal web server (optional)
+object network OBJ_WEB
+ host 192.168.1.100
+ nat (transit,outside) static interface service tcp 80 80
+
+! Perimeter ACL - only allow what we need inbound
+access-list OUTSIDE_IN extended permit tcp any host 203.0.113.10 eq 80
+access-list OUTSIDE_IN extended permit tcp host 198.51.100.10 host 203.0.113.10 eq 22
+access-list OUTSIDE_IN extended permit icmp any host 203.0.113.10 echo
+access-list OUTSIDE_IN extended deny ip any any
+
+access-group OUTSIDE_IN in interface outside
+
+! Management: allow SSH from inside network and optionally from admin public IP
+ssh 192.168.1.0 255.255.255.0 transit
+ssh 198.51.100.10 255.255.255.255 outside   ! optional; add only if needed
+
+username admin password VeryStr0ngPass
+
+write memory
+
+! ---- Router0 minimal config: transit toward ASA, LAN toward switch ----
+hostname Router0
+enable secret strongerpassword123
+no ip domain-lookup
+
+! Interface toward ASA (transit)
+interface FastEthernet0/0
+ description to-ASA-transit
+ ip address 10.0.0.1 255.255.255.252
+ no shutdown
+
+! LAN interface toward L2 switch
+interface FastEthernet1/0
+ description LAN - inside
+ ip address 192.168.1.1 255.255.255.0
+ no shutdown
+
+! Default route: send Internet-bound traffic to ASA transit IP
+ip route 0.0.0.0 0.0.0.0 10.0.0.2
+
+! Ensure no NAT here (ASA handles NAT)
+no ip nat inside source list 1 interface FastEthernet0/0 overload
+
+interface FastEthernet1/0
+ no ip nat inside
+
+interface FastEthernet0/0
+ no ip nat outside
+
+! Save
+end
+write memory
+3) DHCP server (Packet Tracer Server GUI or Linux isc-dhcpd)
+Packet Tracer Server GUI (fast)
+
+IP: 192.168.1.100 / mask 255.255.255.0 / gateway 192.168.1.1
+
+Services → DHCP:
+
+Pool name: SMEPOOL
+
+Default gateway: 192.168.1.1
+
+DNS: 8.8.8.8
+
+Start IP: 192.168.1.21
+
+Subnet mask: 255.255.255.0
+
+Max users: 150
+
+! ---- Switch0 ----
+
+hostname Switch0
+enable secret strongerpassword123
+! keep default: all ports in VLAN1, no mgmt IP
+! Connect:
+! Fa0/1 -> PC-Admin
+! Fa0/2 -> PC-Employee
+! Fa0/3 -> IoT Camera
+! Fa0/4 -> Server (DHCP) .100
+! Fa0/24 -> Router0 Fa1/0
+
+Router0
+line con 0
+password strongerpassword123
+login
+exit
+
+line vty 0 4
+password strongerpassword123
+exit
+service password-encryption 
+exit
+Switch0
+line con 0
+password strongerpassword123
+login
+exit
+
+line vty 0 4
+password strongerpassword123
+exit
+service password-encryption 
+exit
+
+
