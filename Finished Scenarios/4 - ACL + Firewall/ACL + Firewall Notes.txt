@@ -1,0 +1,238 @@
+Switch0 (2960)
+
+enable
+configure terminal
+hostname Switch0
+
+vlan 10
+ name ADMIN_SERVER
+vlan 20
+ name MANAGEMENT
+vlan 30
+ name IOT
+vlan 40
+ name USERS
+vlan 99
+ name NATIVE
+exit
+
+! Assign access ports to VLANs
+interface fastEthernet0/1
+ switchport mode access
+ switchport access vlan 10
+ no shutdown
+exit
+interface fastEthernet0/2
+ switchport mode access
+ switchport access vlan 20
+ no shutdown
+exit
+interface fastEthernet0/3
+ switchport mode access
+ switchport access vlan 30
+ no shutdown
+exit
+interface fastEthernet0/4
+ switchport mode access
+ switchport access vlan 40
+ no shutdown
+exit
+
+! Configure trunk uplink to Router0
+interface fastEthernet0/5
+ switchport mode trunk
+ switchport trunk allowed vlan 10,20,30,40,99
+ switchport trunk native vlan 99
+ no shutdown
+exit
+
+! VLAN interface IP
+interface vlan 20
+ ip address 192.168.20.2 255.255.255.0
+ no shutdown
+exit
+
+! Default gateway
+ip default-gateway 192.168.20.1
+
+! Ensure access ports are up
+interface range fa0/1 - 4
+ switchport mode access
+ no shutdown
+exit
+
+! Assign VLANs explicitly again
+interface fa0/1
+ switchport access vlan 10
+exit
+interface fa0/2
+ switchport access vlan 20
+exit
+interface fa0/3
+ switchport access vlan 30
+exit
+interface fa0/4
+ switchport access vlan 40
+exit
+
+! Trunk interface
+interface fa0/5
+ switchport mode trunk
+ switchport trunk allowed vlan 10,20,30,40,99
+ switchport trunk native vlan 99
+ no shutdown
+exit
+
+! Shut down unused ports
+interface range fa0/6 - 24
+ shutdown
+exit
+
+write memory
+
+Router0
+
+enable
+configure terminal
+hostname Router0
+no ip domain-lookup
+enable secret itnpa4
+
+! Subinterfaces for VLANs
+interface FastEthernet1/0
+ no shutdown
+exit
+
+interface FastEthernet1/0.10
+ encapsulation dot1Q 10
+ ip address 192.168.10.1 255.255.255.0
+exit
+interface FastEthernet1/0.20
+ encapsulation dot1Q 20
+ ip address 192.168.20.1 255.255.255.0
+exit
+interface FastEthernet1/0.30
+ encapsulation dot1Q 30
+ ip address 192.168.30.1 255.255.255.0
+exit
+interface FastEthernet1/0.40
+ encapsulation dot1Q 40
+ ip address 192.168.40.1 255.255.255.0
+exit
+
+! Connection to ASA (transit)
+interface FastEthernet0/0
+ ip address 10.0.0.1 255.255.255.252
+ no shutdown
+exit
+
+! Default route to ASA
+ip route 0.0.0.0 0.0.0.0 10.0.0.2
+
+! DHCP exclusions
+ip dhcp excluded-address 192.168.10.1 192.168.10.10
+ip dhcp excluded-address 192.168.20.1 192.168.20.10
+ip dhcp excluded-address 192.168.30.1 192.168.30.10
+ip dhcp excluded-address 192.168.40.1 192.168.40.10
+
+! DHCP pools
+ip dhcp pool VLAN10
+ network 192.168.10.0 255.255.255.0
+ default-router 192.168.10.1
+ dns-server 8.8.8.8
+exit
+
+ip dhcp pool VLAN20
+ network 192.168.20.0 255.255.255.0
+ default-router 192.168.20.1
+ dns-server 8.8.8.8
+exit
+
+ip dhcp pool VLAN30
+ network 192.168.30.0 255.255.255.0
+ default-router 192.168.30.1
+ dns-server 8.8.8.8
+exit
+
+ip dhcp pool VLAN40
+ network 192.168.40.0 255.255.255.0
+ default-router 192.168.40.1
+ dns-server 8.8.8.8
+exit
+
+write memory
+
+ASA5506
+
+enable
+configure terminal
+hostname ASA5506
+enable password strongerpassword123
+
+! Transit interface to Router0
+interface GigabitEthernet1/1
+ nameif transit
+ security-level 50
+ ip address 10.0.0.2 255.255.255.252
+ no shutdown
+exit
+
+! Outside interface
+interface GigabitEthernet1/2
+ nameif outside
+ security-level 0
+ ip address 203.0.113.10 255.255.255.0
+ no shutdown
+exit
+
+! Static routes
+route outside 0.0.0.0 0.0.0.0 203.0.113.1
+route transit 192.168.10.0 255.255.255.0 10.0.0.1
+route transit 192.168.20.0 255.255.255.0 10.0.0.1
+route transit 192.168.30.0 255.255.255.0 10.0.0.1
+route transit 192.168.40.0 255.255.255.0 10.0.0.1
+
+! NAT (dynamic PAT)
+object network NAT_INSIDE
+ subnet 0.0.0.0 0.0.0.0
+ nat (transit,outside) dynamic interface
+
+! ACL for internet
+access-list OUTSIDE_IN permit tcp any host 203.0.113.10 eq 80
+access-list OUTSIDE_IN permit icmp any host 203.0.113.10 echo
+access-list OUTSIDE_IN deny ip any any
+access-group OUTSIDE_IN in interface outside
+
+! SSH
+username admin password strongerpassword123
+
+end
+write memory
+
+Router0
+line con 0
+password strongerpassword123
+login
+exit
+
+line vty 0 4
+password strongerpassword123
+exit
+service password-encryption 
+exit
+Switch0
+line con 0
+password strongerpassword123
+login
+exit
+
+line vty 0 4
+password strongerpassword123
+exit
+service password-encryption 
+exit
+
+
+
+
+
