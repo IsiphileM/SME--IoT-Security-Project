@@ -1,4 +1,4 @@
-#🏢Project: SME IoT Secure Network Architecture (Cisco Packet Tracer)
+# 🏢Project: SME IoT Secure Network Architecture (Cisco Packet Tracer)
 
 ### Project Specifications
 * **Primary Function:** Enterprise Network Segmentation & Security Enforcement
