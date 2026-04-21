@@ -118,7 +118,7 @@ Because IoT devices should never be trusted. Ever.
 | Ping VLAN 40 (IoT Devices) | ❌ Blocked |
 | Intra-VLAN Communication | ✅ Allowed |
 
-✔ **Conclusion:** Attacker containment successfully enforced. No lateral movement possible.
+**Conclusion:** Attacker containment successfully enforced. No lateral movement possible.
 
 ---
 
@@ -130,7 +130,7 @@ Because IoT devices should never be trusted. Ever.
 | VLAN 10 → VLAN 40 | ✅ Success (Controlled) |
 | VLAN 20 → VLAN 40 | ✅ Success (Policy-based) |
 
-✔ **Conclusion:** Controlled inter-VLAN routing functions as expected.
+**Conclusion:** Controlled inter-VLAN routing functions as expected.
 
 ---
 
@@ -142,7 +142,7 @@ Because IoT devices should never be trusted. Ever.
 | External Network Recon Attempts | ❌ Blocked |
 | DoS Attack Simulation | ❌ Failed |
 
-✔ **Conclusion:** ASA firewall successfully prevents external intrusion attempts.
+**Conclusion:** ASA firewall successfully prevents external intrusion attempts.
 
 ---
 
@@ -150,18 +150,12 @@ Because IoT devices should never be trusted. Ever.
 
 This architecture successfully demonstrates:
 
-- ✔ Network segmentation using VLANs
-- ✔ Layered security enforcement (Switch + Router + Firewall)
-- ✔ ACL-based traffic filtering
-- ✔ IoT isolation strategy
-- ✔ Internal attacker containment
-- ✔ External perimeter defense
-
----
-
-## Network Flow Diagram
-
-
+- Network segmentation using VLANs
+- Layered security enforcement (Switch + Router + Firewall)
+- ACL-based traffic filtering
+- IoT isolation strategy
+- Internal attacker containment
+- External perimeter defense
 
 ---
 
